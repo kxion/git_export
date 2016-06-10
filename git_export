@@ -1,0 +1,68 @@
+#!/bin/sh
+
+project_path=
+patch_path=
+
+export_project(){
+	#把主函数参数传进来
+	des_project_path=$1
+	des_patch_path=$2
+	#定义增删改的文件夹
+	patch_path_folder=
+	#定义一个临时文件，存放增删改的文件列表
+	tmpfile=../patch.log
+	git status --porcelain | awk -F " " '{print $2}' > $tmpfile
+	#定义行数，不定义也行，我是用来核对自己有木有写错
+	LINE_NUM=1
+	#循环开始：遍历增删改文件列表
+	while read filepath
+	do
+  	printf " %d.filepath:  $filepath" $LINE_NUM
+  	LINE_NUM=$((LINE_NUM + 1))
+  	#判断文件是否存在
+  	if [ ! -e "$filepath" ] 
+  	then
+  	    #不在
+    	printf "\n\e[31m ------it is deleted!------\e[0m \n"
+  	else
+  		#在的话，就 赋值到  刚才定义的增删改的文件夹
+  		patch_path_folder="$des_patch_path"/"$(dirname $filepath)"
+  		printf "\n\e[32m copy to:    $patch_path_folder\e[0m \n"
+  		# 强制创建 文件夹
+  		mkdir -p $patch_path_folder
+  		# 复制文件到文件夹里面
+  		cp -Rf $filepath $patch_path_folder
+  	fi
+	done < $tmpfile
+	#循环结束
+	# 删除临时文件
+	rm $tmpfile
+	# 返回 项目根目录
+	cd $des_project_path
+}
+
+main(){
+	#在项目根目录运行本脚本，赋值路径到 project_path
+	project_path=$(pwd) 
+	#创建跟项目根目录同级别的 patch 文件夹
+    mkdir ../patch
+    #进入 patch 文件夹
+	cd ../patch
+	#赋值路径到 patch_path
+	patch_path=$(pwd)
+	#回到项目根目录
+	cd -
+	
+	echo "project_path:   $project_path"
+	echo "============================"
+
+	#执行抽取函数
+	export_project $project_path $patch_path
+
+	echo "============================"
+	tree $patch_path
+	echo "============================"
+	echo "patch_path: $patch_path"
+}
+
+main
